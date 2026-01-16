@@ -1,0 +1,12 @@
+## Interface: 110207, 120000
+## Title: SimpleDruid 1.2 by |cFFFF8080 Zetaprime82|r
+## Title: SimpleDruid |cFFFF8080 Retail|r
+## Version: 1.2 (Retail)
+## Notes: Displays Health, Mana, and Astral Power bars for Druids.
+## Author: Zetaprime82
+## Version: 1.2
+## SavedVariablesPerCharacter: SimpleDruid_Config
+## IconTexture: Interface\AddOns\SimpleDruid\Artwork\SimpleDruid
+## Category-enUS: User Interface
+
+SimpleDruid.lua
