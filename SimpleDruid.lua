@@ -1,7 +1,7 @@
 -------------------------------------------------
 -- Constants & Configuration
 -------------------------------------------------
-local VERSION = "1.2"
+local VERSION = "1.3"
 local DEFAULT_FONT = "Fonts\\FRIZQT__.TTF"
 
 local textures = {
@@ -91,7 +91,7 @@ main:SetScript("OnDragStop", function(self)
 end)
 
 -------------------------------------------------
--- Apply All Settings
+-- Apply All Settings (Visibility logic here)
 -------------------------------------------------
 local function ApplySettings()
     main:SetScale(SimpleDruid_Config.scale)
@@ -111,8 +111,13 @@ local function ApplySettings()
 
     mana:SetShown(SimpleDruid_Config.showMana)
     
+    -- Check spec: 1 is Balance
     local spec = GetSpecialization()
-    astral:SetShown(SimpleDruid_Config.showAstral and (spec == 1))
+    if SimpleDruid_Config.showAstral and spec == 1 then
+        astral:Show()
+    else
+        astral:Hide()
+    end
     
     main:Show()
 end
@@ -133,14 +138,14 @@ local function UpdateResources()
     health.text:SetText(string.format("%d / %d", hp, maxHp))
 
     if SimpleDruid_Config.showMana then
-        local mp, maxMp = UnitPower("player", 0), UnitPowerMax("player", 0)
+        local mp, maxMp = UnitPower("player", Enum.PowerType.Mana), UnitPowerMax("player", Enum.PowerType.Mana)
         mana:SetMinMaxValues(0, maxMp)
         mana:SetValue(mp)
         mana.text:SetText(string.format("Mana: %d%%", (maxMp > 0 and (mp/maxMp * 100) or 0)))
     end
 
-    if SimpleDruid_Config.showAstral and GetSpecialization() == 1 then
-        local ap, maxAp = UnitPower("player", 8), UnitPowerMax("player", 8)
+    if astral:IsShown() then
+        local ap, maxAp = UnitPower("player", Enum.PowerType.LunarPower), UnitPowerMax("player", Enum.PowerType.LunarPower)
         astral:SetMinMaxValues(0, maxAp)
         astral:SetValue(ap)
         astral.text:SetText(string.format("Astral: %d", ap))
@@ -212,22 +217,29 @@ end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function(self, event)
-    local _, class = UnitClass("player")
-    if class ~= "DRUID" then return end
+f:SetScript("OnEvent", function(self, event, ...)
+    if event == "PLAYER_LOGIN" then
+        local _, class = UnitClass("player")
+        if class ~= "DRUID" then return end
 
-    InitSettings()
-    ApplySettings()
-    RegisterSettings()
+        InitSettings()
+        ApplySettings()
+        RegisterSettings()
+        
+        self:RegisterUnitEvent("UNIT_HEALTH", "player")
+        self:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
+        self:RegisterUnitEvent("UNIT_POWER_FREQUENT", "player")
+        self:RegisterUnitEvent("UNIT_MAXPOWER", "player")
+        self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+        
+        UpdateResources()
+        print("|cFFFFD100SimpleDruid v" .. VERSION .. " loaded.|r Type |cFF00FF00/sd|r for options and |cFF00FF00/sd reset|r to preform a addon reset.")
     
-    self:RegisterUnitEvent("UNIT_HEALTH", "player")
-    self:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
-    self:RegisterUnitEvent("UNIT_POWER_FREQUENT", "player")
-    self:RegisterUnitEvent("UNIT_MAXPOWER", "player")
-    self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-    
-    self:SetScript("OnEvent", UpdateResources)
-    UpdateResources()
-
-    print("|cFFFFD100SimpleDruid v" .. VERSION .. " loaded.|r Type |cFF00FF00/sd|r for options and |cFF00FF00/sd reset|r to preform a addon reset.")
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
+        -- This forces the Astral bar to show/hide immediately when switching specs
+        ApplySettings()
+        UpdateResources()
+    else
+        UpdateResources()
+    end
 end)
